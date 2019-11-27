@@ -84,7 +84,7 @@ for layer in inception.layers:
 
 # Input layer
 # image_input = Input(shape=(160, 320, 3))
-image_input = Input(shape=(size_cropped, 320, 3))
+image_input = Input(shape=(160, 320, 3))
 
 # Cropping layer
 cropped_input = Cropping2D(cropping=((50,20), (0,0)), input_shape=(160,320,3))(image_input)
@@ -94,7 +94,7 @@ resized_input = Lambda(lambda pixel: pixel / 255.0 - 0.5, input_shape=(size_crop
 
 # Inception V3 layers
 # inp = inception(resized_input)
-inp = inception(image_input)
+inp = inception(resized_input)
 
 # Global average pooling layer
 glob_avg_pool = GlobalAveragePooling2D()(inp)
