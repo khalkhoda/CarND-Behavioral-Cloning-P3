@@ -21,8 +21,9 @@ def generator(samples, batch_size=32):
                 for i in range(3):
                     source_path = line[i].strip()
                     filename = source_path.split('/')[-1]
-                    current_path = 'my_data/IMG/' + filename
-                    image = cv2.imread(current_path)
+                    current_path = 'data/IMG/' + filename
+                    im_cv = cv2.imread(current_path)
+                    im_rgb = cv2.cvtColor(im_cv, cv2.COLOR_BGR2RGB)
                     # Crop image
                     # image = image[60:140,:,:]
                     # Normalize image
@@ -33,9 +34,9 @@ def generator(samples, batch_size=32):
                         measurement += 0.2
                     elif i == 2:
                         measurement -= 0.2
-                    images.append(image)
+                    images.append(im_rgb)
                     angles.append(measurement)
-                    images.append(cv2.flip(image, 1))
+                    images.append(cv2.flip(im_rgb, 1))
                     angles.append(measurement*-1.0)
             X_train = np.array(images)
             y_train = np.array(angles)
@@ -47,7 +48,7 @@ def generator(samples, batch_size=32):
 #     X_train, y_train = training_data
 # else:
 lines = []
-with open('my_data/driving_log.csv') as csvfile:
+with open('data/driving_log.csv') as csvfile:
     reader = csv.reader(csvfile)
     for line in reader:
         lines.append(line)
@@ -102,9 +103,9 @@ glob_avg_pool = GlobalAveragePooling2D()(inp)
 
 # Fully connected layer
 # Activation should be None, otherwise no negative steering values will be allowed
-Dense_layer1 = Dense(100, activation=None )(glob_avg_pool)
+# Dense_layer1 = Dense(100, activation=None )(glob_avg_pool)
 
-Dense_layer2 = Dense(50, activation=None )(Dense_layer1)
+Dense_layer2 = Dense(50, activation=None )(glob_avg_pool)
 
 Dense_layer3 = Dense(10, activation=None )(Dense_layer2)
 
@@ -133,7 +134,7 @@ model.fit_generator(train_generator,
  epochs=2,
  verbose=1)
 
-# model.save('model.h5')
+model.save('model.h5')
 
 
 
