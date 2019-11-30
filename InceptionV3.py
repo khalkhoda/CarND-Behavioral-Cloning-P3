@@ -19,17 +19,18 @@ def generator(samples, batch_size=32):
             angles = []
             for batch_sample in batch_samples:
                 for i in range(3):
-                    source_path = line[i].strip()
+                    source_path = batch_sample[i].strip()
                     filename = source_path.split('/')[-1]
                     current_path = 'data/IMG/' + filename
                     im_cv = cv2.imread(current_path)
                     im_rgb = cv2.cvtColor(im_cv, cv2.COLOR_BGR2RGB)
+                    # im_rgb = im_cv
                     # Crop image
                     # image = image[60:140,:,:]
                     # Normalize image
                     # image = image.astype('float32')
                     # image = image / 255.0 - 0.5
-                    measurement = float(line[3])
+                    measurement = float(batch_sample[3])
                     if i == 1:
                         measurement += 0.2
                     elif i == 2:
@@ -52,7 +53,9 @@ with open('data/driving_log.csv') as csvfile:
     reader = csv.reader(csvfile)
     for line in reader:
         lines.append(line)
-print("First line of csv file", lines[0])
+
+for i in range(10):
+    print("First line of csv file", lines[i])
 # lines.pop(0)
 # print("after", lines[0])
 
@@ -91,11 +94,11 @@ image_input = Input(shape=(160, 320, 3))
 cropped_input = Cropping2D(cropping=((50,20), (0,0)), input_shape=(160,320,3))(image_input)
 
 # Lambda layer (normalization)
-resized_input = Lambda(lambda pixel: pixel / 255.0 - 0.5, input_shape=(size_cropped,320,3))(cropped_input)
+resized_input = Lambda(lambda pixel: (pixel / 255.0 - 0.5)*2.0, input_shape=(size_cropped,320,3))(cropped_input)
 
 # Inception V3 layers
-# inp = inception(resized_input)
 inp = inception(resized_input)
+
 
 # Global average pooling layer
 glob_avg_pool = GlobalAveragePooling2D()(inp)
@@ -103,11 +106,17 @@ glob_avg_pool = GlobalAveragePooling2D()(inp)
 
 # Fully connected layer
 # Activation should be None, otherwise no negative steering values will be allowed
-# Dense_layer1 = Dense(100, activation=None )(glob_avg_pool)
+Dense_layer1 = Dense(100, activation='relu' )(glob_avg_pool)
 
-Dense_layer2 = Dense(50, activation=None )(glob_avg_pool)
+Dense_layer2 = Dense(50, activation='relu' )(Dense_layer1)
 
-Dense_layer3 = Dense(10, activation=None )(Dense_layer2)
+Dense_layer3 = Dense(10, activation='relu' )(Dense_layer2)
+
+# Dense_layer1 = Dense(100 )(glob_avg_pool)
+#
+# Dense_layer2 = Dense(50)(Dense_layer1)
+#
+# Dense_layer3 = Dense(10)(Dense_layer2)
 
 # Output layer (fully connected layer)
 predictions = Dense(1, activation=None)(Dense_layer3)
@@ -126,17 +135,16 @@ from keras.callbacks.callbacks import ModelCheckpoint, EarlyStopping
 # checkpoint = ModelCheckpoint(filepath='model.h5', monitor='val_loss', save_best_only=True)
 # stopper = EarlyStopping(monitor='val_accuracy', min_delta=0.0003, patience=5)
 from math import ceil
-model.fit_generator(train_generator,
+history_object = model.fit_generator(train_generator,
  steps_per_epoch=ceil(len(train_samples)/batch_size),
  validation_data=validation_generator,
  validation_steps=ceil(len(validation_samples)/batch_size),
 #  callbacks=[checkpoint, stopper],
- epochs=2,
+ epochs=3,
  verbose=1)
 
-model.save('model.h5')
 
-
+model.save('model_InceptionV3.h5')
 
 # model.add(Flatten())
 # model.add(Dense(100))
@@ -147,3 +155,18 @@ model.save('model.h5')
 # model.fit(X_train, y_train, validation_split=0.2, shuffle=True, nb_epoch=7)
 # model.save('model.h5')
 #
+
+
+import matplotlib.pyplot as plt
+
+### print the keys contained in the history object
+print(history_object.history.keys())
+
+### plot the training and validation loss for each epoch
+plt.plot(history_object.history['loss'])
+plt.plot(history_object.history['val_loss'])
+plt.title('model mean squared error loss')
+plt.ylabel('mean squared error loss')
+plt.xlabel('epoch')
+plt.legend(['training set', 'validation set'], loc='upper right')
+plt.show()

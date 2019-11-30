@@ -47,7 +47,7 @@ controller = SimplePIController(0.1, 0.002)
 set_speed = 9
 controller.set_desired(set_speed)
 
-
+from time import time
 @sio.on('telemetry')
 def telemetry(sid, data):
     if data:
@@ -61,11 +61,14 @@ def telemetry(sid, data):
         imgString = data["image"]
         image = Image.open(BytesIO(base64.b64decode(imgString)))
         image_array = np.asarray(image)
+
+        start = time()
         steering_angle = float(model.predict(image_array[None, :, :, :], batch_size=1))
+        end = time()
 
         throttle = controller.update(float(speed))
 
-        print(steering_angle, throttle)
+        print('steering_angle', steering_angle, 'throttle', throttle, 'time', end - start)
         send_control(steering_angle, throttle)
 
         # save frame
